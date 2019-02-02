@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+	<!-- 配置dataSource -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="com.mysql.cj.jdbc.Driver"/>
+		<property name="jdbcUrl" value="jdbc:mysql:///ssm_shiro?serverTimezone=Asia/Shanghai&amp;useSSL=false"/>
+		<property name="user" value="root"/>
+		<property name="password" value="root" />
+	</bean>
+	
+	<!-- 配置sqlSessionFactory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<!-- 虽然大部分配置都已经转到spring 配置文件，但是最好还是保留mybatis配置文件，然后引入一下 -->
+		<property name="configLocation" value="classpath:mybatis-config.xml" />
+	</bean>
+	
+	<!-- 配置事务管理器 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+	
+	<!-- 配置dao层接口扫描: 方式1  -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="cn.itcast.mapper"></property>
+	</bean>
+	
+	<!-- 配置一下spring bean注解支持 -->
+	<context:annotation-config /> 
+	<context:component-scan base-package="cn.itcast.service" >
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+		<context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+	</context:component-scan>
+	
+	<!-- 配置一下事务注解支持 -->
+	<tx:annotation-driven transaction-manager="transactionManager"/>
+	
+	<!-- 配置一下aop 注解支持 -->
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
+	
+	
+	
+	<!-- 配置和securityManager， 这是shiro 框架的核心 -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<!-- 配置session 的管理方式 -->
+		<property name="sessionMode" value="native"/>
+		<!-- 配置缓存管理器 -->
+		<property name="cacheManager" ref="cacheManager"></property>
+		<!-- 配置authenticator -->
+		<property name="authenticator" ref="authenticator"/>
+	</bean>
+	
+	<!-- 配置ehcacheManager 与 shiro 整合 -->
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<!-- 配置一下 ehcache.xml 的位置 -->
+		<property name="cacheManagerConfigFile" value="classpath:ehcache.xml"/>
+	</bean>
+	
+	<!-- 配置realm1 -->
+	<bean id="myShiroRealm1" class="cn.itcast.realm.MyShiroRealm1">
+		<property name="credentialsMatcher" >
+			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+				<!-- 加密的算法  -->
+				<property name="hashAlgorithmName" value="MD5"></property>
+				<!-- 加密的次数 -->
+				<property name="hashIterations" value="3"></property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 配置realm2 : 这个只是为了演示如何配置多个 realm ， realm2 是直接复制 realm1 的-->
+	<bean id="myShiroRealm2" class="cn.itcast.realm.MyShiroRealm2">
+		<property name="credentialsMatcher" >
+			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+				<!-- 加密的算法  -->
+				<property name="hashAlgorithmName" value="SHA1"></property>
+				<!-- 加密的次数 -->
+				<property name="hashIterations" value="3"></property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 把多个 realm 整合到 Authenticator 对象中去 -->
+	<bean id="authenticator" class="org.apache.shiro.authc.pam.ModularRealmAuthenticator">
+		<!-- 配置认证策略 -->
+		<property name="authenticationStrategy">
+			<bean class="org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy"></bean>
+		</property>
+		<!-- 配置多个 realm  -->
+		<property name="realms">
+			<list>
+				<ref bean="myShiroRealm1"/>
+				<ref bean="myShiroRealm2"/>
+			</list>
+		</property>
+	 </bean>
+	
+	<!-- 配置 lifecycleBeanPostProcessor , 可以拦截spring中bean 的 init() 和  destroy() 方法
+		 间接实现了spring中的 BeanPostProcessor 接口
+	 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+	
+	<!-- 启用 shiro 注解。  【注意】必须先配置 lifecycleBeanPostProcessor， 否则无效 -->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" 
+			depends-on="lifecycleBeanPostProcessor"/>
+			
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager"/>
+	</bean>
+	
+	
+	<!-- 配置 shiroFilter
+		【注意】 这个id 必须和web.xml 时面的那个 shiroFielter 的<fielter-name> 一致才可以
+		      	因为web.xml 里面配置的那个过滤器对象是要由  spring IOC容器来创建的，如果名字不一致会获取不到
+	 -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager"/>
+		<!-- 登陆页面，需要校验的所有请求都会重定向到此页面 -->
+		<property name="loginUrl" value="/login.jsp" />
+		<!-- 登陆成功的页面 -->
+		<property name="successUrl" value="/success.jsp" />
+		<!-- 没有权限的页面， -->
+		<property name="unauthorizedUrl" value="/unauthorized.jsp" />
+		
+		<!-- 配置哪些页面的访问需要什么权限
+			1、 anon	 是匿名访问
+			2、 authc 	是认证访问
+			3、 如果不配置默认匿名访问
+			4、 也可以使用通配符进行匹配，但是使用了通配符的话， 很多没有明确配置的路径也会受影响
+							/*      匹配webapp 目录下（不包括子目录 ）的所有文件
+							/**     webapp 目录下（包括所有子目录）的所有文件
+			5、 优先匹配原则： /login.jsp 可以匹配  login.jsp 页面
+			              /*         也可以匹配 login.jsp 页面
+			              	如果两个都能匹配的话，那么就看谁排在前面，就按谁的规则来
+		 -->
+		<property name="filterChainDefinitions">
+			<value>
+				/login.jsp = anon
+				/user/login = anon
+				/index.jsp = anon
+				/error.jsp = anon
+				/unauthorized.jsp = anon
+				/success.jsp = authc
+				/* = authc
+			</value>
+		</property>
+	</bean>
+</beans>
