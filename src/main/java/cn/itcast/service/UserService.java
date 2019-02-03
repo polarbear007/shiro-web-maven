@@ -26,4 +26,11 @@ public class UserService {
 			return null;
 		}
 	}
+	
+	// 通过 username 去获取 user 对象
+	// 只不过这次我们获取的 user 对象是包含 角色和权限信息的
+	public User getUserWithRolesAndPermissionsByUsername(String username) {
+		System.out.println("连接数据库去获取  " + username + "  用户的角色和权限信息");
+		return userMapper.getUserWithRolesAndPermissionsByUsername(username);
+	}
 }

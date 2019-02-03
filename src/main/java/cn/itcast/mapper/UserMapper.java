@@ -27,4 +27,7 @@ public interface UserMapper {
     int updateByPrimaryKeySelective(User record);
 
     int updateByPrimaryKey(User record);
+    
+    // 通过 username 去查询相关的角色 和 权限信息
+    public User getUserWithRolesAndPermissionsByUsername(String username);
 }

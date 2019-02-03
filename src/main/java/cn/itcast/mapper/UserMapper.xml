@@ -193,4 +193,34 @@
       status = #{status,jdbcType=VARCHAR}
     where uid = #{uid,jdbcType=INTEGER}
   </update>
+  
+  <!-- 包含角色和权限信息的 user ResultMap -->
+  <resultMap type="cn.itcast.entity.User" id="UserWithRolesAndPermissionsByUsernameResultMap">
+  		<id column="uid" property="uid" jdbcType="INTEGER" />
+	    <result column="username" property="username" jdbcType="VARCHAR" />
+	    <result column="password" property="password" jdbcType="VARCHAR" />
+	    <result column="status" property="status" jdbcType="VARCHAR" />
+	    
+	    <!-- 设置关联集合对象 roleList -->
+	    <collection property="roleList" ofType="cn.itcast.entity.Role">
+	    	<id column="rid" property="rid"/>
+	    	<result column="role_name" property="roleName" />
+	    	
+	    	<!-- 设置关联集合对象 permissionList -->
+	    	<collection property="permissionList" ofType="cn.itcast.entity.Permission">
+	    		<id column="pid" property="pid"/>
+	    		<result column="permission_name" property="permissionName"/>
+	    	</collection>
+	    </collection>
+  </resultMap>
+  
+  <!-- 通过username 去查询跟此用户关联的角色和权限信息 -->
+  <select id="getUserWithRolesAndPermissionsByUsername" resultMap="UserWithRolesAndPermissionsByUsernameResultMap">
+  	 	SELECT * FROM t_user u
+		INNER JOIN t_user_role ur ON u.`uid` = ur.`user_id`
+		INNER JOIN t_role r ON ur.`role_id` = r.`rid`
+		INNER JOIN t_role_permission rp ON r.`rid` = rp.`role_id`
+		INNER JOIN t_permission p ON rp.`permission_id` = p.`pid`
+		WHERE u.`username` = #{username };
+  </select>
 </mapper>

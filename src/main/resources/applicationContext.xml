@@ -40,7 +40,7 @@
 	
 	<!-- 配置一下spring bean注解支持 -->
 	<context:annotation-config /> 
-	<context:component-scan base-package="cn.itcast.service" >
+	<context:component-scan base-package="cn.itcast.*" >
 		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
 		<context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
 	</context:component-scan>
@@ -59,8 +59,8 @@
 		<property name="sessionMode" value="native"/>
 		<!-- 配置缓存管理器 -->
 		<property name="cacheManager" ref="cacheManager"></property>
-		<!-- 配置authenticator -->
-		<property name="authenticator" ref="authenticator"/>
+		<!-- 配置单个realm -->
+		<property name="realm" ref="myShiroRealm"/>
 	</bean>
 	
 	<!-- 配置ehcacheManager 与 shiro 整合 -->
@@ -69,8 +69,8 @@
 		<property name="cacheManagerConfigFile" value="classpath:ehcache.xml"/>
 	</bean>
 	
-	<!-- 配置realm1 -->
-	<bean id="myShiroRealm1" class="cn.itcast.realm.MyShiroRealm1">
+	<!-- 配置realm -->
+	<bean id="myShiroRealm" class="cn.itcast.realm.MyShiroRealm">
 		<property name="credentialsMatcher" >
 			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
 				<!-- 加密的算法  -->
@@ -81,32 +81,6 @@
 		</property>
 	</bean>
 	
-	<!-- 配置realm2 : 这个只是为了演示如何配置多个 realm ， realm2 是直接复制 realm1 的-->
-	<bean id="myShiroRealm2" class="cn.itcast.realm.MyShiroRealm2">
-		<property name="credentialsMatcher" >
-			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
-				<!-- 加密的算法  -->
-				<property name="hashAlgorithmName" value="SHA1"></property>
-				<!-- 加密的次数 -->
-				<property name="hashIterations" value="3"></property>
-			</bean>
-		</property>
-	</bean>
-	
-	<!-- 把多个 realm 整合到 Authenticator 对象中去 -->
-	<bean id="authenticator" class="org.apache.shiro.authc.pam.ModularRealmAuthenticator">
-		<!-- 配置认证策略 -->
-		<property name="authenticationStrategy">
-			<bean class="org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy"></bean>
-		</property>
-		<!-- 配置多个 realm  -->
-		<property name="realms">
-			<list>
-				<ref bean="myShiroRealm1"/>
-				<ref bean="myShiroRealm2"/>
-			</list>
-		</property>
-	 </bean>
 	
 	<!-- 配置 lifecycleBeanPostProcessor , 可以拦截spring中bean 的 init() 和  destroy() 方法
 		 间接实现了spring中的 BeanPostProcessor 接口
@@ -115,7 +89,9 @@
 	
 	<!-- 启用 shiro 注解。  【注意】必须先配置 lifecycleBeanPostProcessor， 否则无效 -->
 	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" 
-			depends-on="lifecycleBeanPostProcessor"/>
+														depends-on="lifecycleBeanPostProcessor" >
+			<property name="proxyTargetClass" value="true"></property>
+	</bean>
 			
 	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
 		<property name="securityManager" ref="securityManager"/>
@@ -153,7 +129,9 @@
 				/index.jsp = anon
 				/error.jsp = anon
 				/unauthorized.jsp = anon
+				/testShiroTag.jsp = anon
 				/success.jsp = authc
+				/user/updateOrders = authc,roles[admin]
 				/* = authc
 			</value>
 		</property>

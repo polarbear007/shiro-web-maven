@@ -1,15 +1,31 @@
 package cn.itcast.entity;
 
-public class User {
-    private Integer uid;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+public class User implements Serializable{
+	private static final long serialVersionUID = 2698776239624427932L;
+
+	private Integer uid;
 
     private String username;
 
     private String password;
 
     private String status;
+    
+    private List<Role> roleList = new ArrayList<>();
 
-    public Integer getUid() {
+    public List<Role> getRoleList() {
+		return roleList;
+	}
+
+	public void setRoleList(List<Role> roleList) {
+		this.roleList = roleList;
+	}
+
+	public Integer getUid() {
         return uid;
     }
 

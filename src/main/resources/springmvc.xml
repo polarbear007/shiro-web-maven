@@ -25,8 +25,9 @@
 		【注意】 只需要扫描 controller 层的类上面的注解，service/dao 层的由 applicationContext.xml 去扫描
 		其实， springmvc 容器是spring 容器里面的一个小容器，这两个容器还是有一些区别的。
 	 -->
-	<context:component-scan base-package="cn.itcast" use-default-filters="false"> 
+	<context:component-scan base-package="cn.itcast.controller" use-default-filters="false"> 
 		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
 		<context:include-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
 	</context:component-scan>
+	
 </beans>

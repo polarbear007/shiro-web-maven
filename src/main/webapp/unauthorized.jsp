@@ -7,6 +7,6 @@
 <title>Insert title here</title>
 </head>
 <body>
-	<h2>不需要任何权限的页面</h2>
+	<h2>对不起，你没有权限进行此操作</h2>
 </body>
 </html>
