@@ -1,9 +1,19 @@
 <ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
 		xsi:noNamespaceSchemaLocation="../config/ehcache.xsd" updateCheck="false">
    
+   
    <!-- 如果需要存放到硬盘时，缓存存放的硬盘位置 -->
     <diskStore path="d://temp"/>
-    <!-- 全部使用默认配置 -->
+    
+    <cache name="shiro-activeSessionCache"
+	       maxElementsInMemory="10000"
+	       overflowToDisk="true"
+	       eternal="true"
+	       timeToLiveSeconds="0"
+	       timeToIdleSeconds="0"
+	       diskPersistent="true"
+	       diskExpiryThreadIntervalSeconds="600"/>
+    <!-- 其他使用默认配置 -->
     <defaultCache
             maxElementsInMemory="10000"
             eternal="false"
@@ -15,4 +25,5 @@
             diskExpiryThreadIntervalSeconds="120"
             memoryStoreEvictionPolicy="LRU"
             />
+     
 </ehcache>

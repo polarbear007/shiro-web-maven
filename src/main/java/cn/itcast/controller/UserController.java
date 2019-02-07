@@ -28,7 +28,6 @@ public class UserController {
 	public String login(User user, Model model) {
 		UsernamePasswordToken token = new UsernamePasswordToken(user.getUsername(), 
 				                                                user.getPassword().toCharArray());
-		
 		// 设置是否记住登陆状态
 		token.setRememberMe(true);
 		Subject subject = SecurityUtils.getSubject();
@@ -101,5 +100,11 @@ public class UserController {
 			// 如果还没有登陆的话，那么我们就跳转到 login.jsp 页面
 			return "login";
 		}
+	}
+	
+	@RequestMapping("/logout")
+	public String logout() {
+		SecurityUtils.getSubject().logout();
+		return "success";
 	}
 }
