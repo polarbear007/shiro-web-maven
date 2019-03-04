@@ -1,5 +1,7 @@
 package cn.itcast.controller;
 
+import java.util.Collection;
+
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.IncorrectCredentialsException;
@@ -9,7 +11,10 @@ import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresRoles;
+import org.apache.shiro.session.Session;
+import org.apache.shiro.session.mgt.eis.SessionDAO;
 import org.apache.shiro.subject.Subject;
+import org.apache.shiro.subject.support.DefaultSubjectContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +29,9 @@ public class UserController {
 	@Autowired
 	private ShiroTestService shiroTestService;
 	
+	@Autowired
+	private SessionDAO sessionDao;
+	
 	@RequestMapping("/login")
 	public String login(User user, Model model) {
 		UsernamePasswordToken token = new UsernamePasswordToken(user.getUsername(), 
@@ -31,8 +39,34 @@ public class UserController {
 		// 设置是否记住登陆状态
 		token.setRememberMe(true);
 		Subject subject = SecurityUtils.getSubject();
+		Collection<Session> sessions;
 		try {
 			subject.login(token);
+			
+			//登陆成功以后，我们看一下内存中是否还保存着此用户的其他session 对象
+			// 如果有的话，很可能是这个用户在别处也登陆了。 我们就删除原来的那个用户的 session ，
+			// 保证每个时刻一个帐号只能在一个地方登陆
+			// session 里面保存着两个重要的值： DefaultSubjectContext.AUTHENTICATED_SESSION_KEY  ====> 帐号是否校验过了，true 或者 false
+			//                           DefaultSubjectContext.PRINCIPALS_SESSION_KEY     ====> 帐号信息，包含用户名的SimplePrincipalCollection
+			Session curSession = subject.getSession();
+			sessions = sessionDao.getActiveSessions();
+			for (Session session : sessions) {
+				// 如果用户名跟当前用户相同,但是sessioinId 又跟当前用户的 sessionId 不同，那么
+				// 可以肯定是当前帐号在其他地方登陆了，我们只保留当前用户的session
+				// 注意： session.getId() 返回值并没有重写equals 方法，我们必须转成字符串再来比较
+				// 注意： session.getAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY) 返回值并不是字符串
+				//      SimplePrincipalCollection 对象，所以我们不能直接使用  user.getUsername.equals(xxx) 这样来比较
+				if(curSession.getAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY).equals(session.getAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY))) {
+					if(session.getId().equals(curSession.getId())) {
+						continue;
+					}else {
+						session.stop();
+						break;
+					}
+					
+				}
+			}
+			
 		}catch ( UnknownAccountException e ) { 
 			System.out.println("帐户不存在 ！");
 			model.addAttribute("message", "帐户不存在 ！");
@@ -51,7 +85,7 @@ public class UserController {
 		   return "error";
 		}
 		
-		return "success";
+		return "redirect:/success.jsp";
 	}
 	
 	@RequestMapping("/queryOrders")
