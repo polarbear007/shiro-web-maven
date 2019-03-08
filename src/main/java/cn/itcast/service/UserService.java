@@ -17,6 +17,7 @@ public class UserService {
 	// 只通过 username 去获取 user 对象
 	// 因为我们在数据库里加了唯一约束，所以实际上最多只能返回一个 user 对象
 	public User getUserByUsername(String username) {
+		System.out.println("查询数据库来校验帐号信息了");
 		UserExample example = new UserExample();
 		example.createCriteria().andUsernameEqualTo(username);
 		List<User> list = userMapper.selectByExample(example);
